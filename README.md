@@ -1,7 +1,8 @@
-# 📆 공휴일 관리 API 과제
+# 공휴일 관리 백엔드 과제
 
-외부 공휴일 API **Nager.Date**를 활용하여  
-국가 및 연도별 공휴일을 조회·적재·재동기화·삭제할 수 있는 백엔드 서비스입니다.
+Nager.Date 외부 API를 연동하여 국가/연도별 공휴일을 저장·조회·관리하는 백엔드 서비스입니다.  
+동일 날짜에 여러 공휴일이 겹치는 케이스(예: 2025-05-05 어린이날 & 부처님오신날)를 고려하여  
+`(country_code + date + name)` 기준으로 중복을 제어하도록 설계했습니다.
 
 ---
 
@@ -9,72 +10,159 @@
 
 - Java 21
 - Spring Boot 3.x
-- Spring Data JPA
-- H2 Database
-- Swagger (springdoc-openapi)
+- Spring Web / Spring Data JPA / Validation
+- H2 Database (In-Memory)
+- Swagger (springdoc-openapi-starter-webmvc-ui)
 - Gradle
 
 ---
 
-## ✅ Features
+## ✅ 주요 기능 (Features)
 
-- Nager.Date 외부 API 연동
-- 국가 / 연도별 공휴일 **조회**
-- 공휴일 **초기 적재 (Initial Load)**
-- 공휴일 **재동기화 (Refresh)**
-- 공휴일 데이터 **삭제**
-- 동일 날짜에 여러 공휴일이 존재하는 경우 처리  
-  (예: 2025-05-05 어린이날 + 부처님오신날)
-
----
-
-## ✅ API Docs
-
-Swagger UI를 통해 전체 API를 확인할 수 있습니다.
-
-http://localhost:8080/swagger-ui.html
-
-yaml
-코드 복사
+- Nager.Date 외부 공휴일 API 연동
+- 국가 / 연도별 공휴일 조회
+- 공휴일 초기 로드
+- 공휴일 재동기화
+- 공휴일 삭제제
+- 동일 날짜에 여러 공휴일 처리
+  - 예: 2025-05-05 (어린이날, 부처님오신날)
 
 ---
 
-## ✅ How to Run
+## ✅ 빌드 & 실행 방법
+
+### 1. 빌드
 
 ```bash
+./gradlew clean build
+2. 실행
+bash
+코드 복사
 ./gradlew bootRun
+기본 포트: 8080
 
-✅ 공휴일 조회 API
-특정 연도 + 국가 공휴일 조회
+✅ Swagger / OpenAPI 확인 방법
+Swagger UI
+text
+코드 복사
+http://localhost:8080/swagger-ui/index.html
+OpenAPI JSON
+text
+코드 복사
+http://localhost:8080/v3/api-docs
+✅ REST API 명세 요약
+1️⃣ 공휴일 조회
+GET /api/holidays
+설명
+국가 + 연도 기준으로 저장된 공휴일을 조회합니다.
 
-✅ Initial Data Load (초기 적재)
+Query Parameters
+
+이름	타입	필수	설명	예시
+year	int	✅	조회 연도	2025
+countryCode	String	✅	국가 코드	KR
+
+요청 예시
+
+http
+코드 복사
+GET /api/holidays?year=2025&countryCode=KR
+응답 예시
+
+json
+코드 복사
+[
+  {
+    "id": 1,
+    "countryCode": "KR",
+    "date": "2025-05-05",
+    "year": 2025,
+    "localName": "어린이날",
+    "name": "Children's Day",
+    "global": true,
+    "type": "Public"
+  },
+  {
+    "id": 2,
+    "countryCode": "KR",
+    "date": "2025-05-05",
+    "year": 2025,
+    "localName": "부처님 오신 날",
+    "name": "Buddha's Birthday",
+    "global": true,
+    "type": "Public"
+  }
+]
+2️⃣ 공휴일 초기 적재 (Initial Load)
+POST /admin/holidays/initial-load
+설명
 특정 국가의 공휴일 데이터를 2020 ~ 2025년까지 일괄 적재합니다.
 
-서버 최초 기동 후 공휴일 기본 데이터 적재 용도
+Query Parameters
 
-이미 데이터가 존재해도 중복 오류가 발생하지 않도록 설계됨
+이름	타입	필수	설명	예시
+countryCode	String	✅	국가 코드	KR
 
-✅ Refresh (재동기화)
-특정 연도의 공휴일 데이터를 외부 API 기준으로 다시 동기화합니다.
+요청 예시
 
-기존 데이터가 있으면 update
+http
+코드 복사
+POST /admin/holidays/initial-load?countryCode=KR
+3️⃣ 공휴일 재동기화 (Refresh)
+POST /admin/holidays/refresh
+설명
+특정 연도 + 국가의 공휴일을 외부 API 기준으로 다시 동기화합니다.
 
-없으면 insert
+기존 데이터 → update
 
-API 응답에 없어진 날짜는 delete
+신규 데이터 → insert
 
-✅ Delete (공휴일 삭제)
-특정 연도 + 국가의 공휴일 데이터를 DB에서 삭제합니다.
+API에 존재하지 않는 데이터 → delete
 
-✅ Notes (설계 설명)
-동일 날짜에 여러 공휴일이 존재할 수 있음
+Query Parameters
 
-예: 2025-05-05 (어린이날, 부처님오신날)
+이름	타입	필수	설명	예시
+year	int	✅	대상 연도	2025
+countryCode	String	✅	국가 코드	KR
 
-이를 고려하여 공휴일 데이터는 다음 기준으로 UNIQUE 제약 조건을 가짐
+요청 예시
+
+http
+코드 복사
+POST /admin/holidays/refresh?year=2025&countryCode=KR
+4️⃣ 공휴일 삭제
+DELETE /admin/holidays
+설명
+특정 연도 + 국가의 공휴일 데이터를 일괄 삭제합니다.
+
+Query Parameters
+
+이름	타입	필수	설명	예시
+year	int	✅	대상 연도	2025
+countryCode	String	✅	국가 코드	KR
+
+요청 예시
+
+http
+코드 복사
+DELETE /admin/holidays?year=2025&countryCode=KR
+✅ 테스트 실행
+bash
+코드 복사
+./gradlew clean test
+테스트가 성공하면 Gradle 콘솔에 BUILD SUCCESSFUL 로그가 출력됩니다.
+<img width="1336" height="648" alt="스샷" src="https://github.com/user-attachments/assets/f44258cb-3589-415d-bbe9-34b5db033f82" />
+
+
+
+
+✅ 설계 및 구현 참고 사항
+동일 날짜에 여러 공휴일이 존재할 수 있으므로 다음 UNIQUE 제약을 사용합니다.
+
+text
+코드 복사
 (country_code + date + name)
+초기 적재 및 재동기화는 Upsert 방식으로 구현되어
+중복 데이터로 인한 오류 없이 안전하게 동작합니다.
 
-초기 적재(Initial Load)와 재동기화(Refresh)는
-모두 upsert 방식으로 동작하도록 구현
-
-H2 인메모리 DB 사용으로 서버 재기동 시 데이터 초기화됨
+H2 In-Memory DB 특성상 서버 재기동 시 데이터는 초기화됩니다.
