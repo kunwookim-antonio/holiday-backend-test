@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: holiday-test
+
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: update   # 개발용이니까 update (처음엔 create도 가능)
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  resilience4j:
+    circuitbreaker:
+      instances:
+        nager:
+          sliding-window-type: COUNT_BASED
+          sliding-window-size: 20              # 최근 20번 기준
+          failure-rate-threshold: 50           # 실패율 50% 넘으면 Open
+          minimum-number-of-calls: 10          # 통계 내기 위한 최소 호출 수
+          wait-duration-in-open-state: 30s     # Open 유지 시간
+          permitted-number-of-calls-in-half-open-state: 3
+          automatic-transition-from-open-to-half-open-enabled: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql.BasicBinder: trace
