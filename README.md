@@ -141,6 +141,13 @@ Query Parameters
 요청 예시
 DELETE /admin/holidays?year=2025&countryCode=KR
 
+
+5️⃣ 배치 자동화 (선택 구현)
+
+- 매년 1월 2일 01:00 KST에 전년도·금년도 공휴일을 자동 동기화하는 배치 스케줄러 구현
+- Spring Scheduling(@EnableScheduling, @Scheduled) + HolidaySyncService 활용
+- cron: `0 0 1 2 1 *` (Asia/Seoul 기준)
+
 ✅ 테스트 실행
 ./gradlew clean test
 
